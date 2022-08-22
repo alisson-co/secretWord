@@ -37,25 +37,24 @@ export function App() {
   const [guesses, setGuesses] = useState(guessesQty);
   const [score, setScore] = useState(0);
 
-  const pickedWordAndCategory = () => {
+  const pickedWordAndCategory = useCallback(() => {
     // pick a random category (-passing the object key as category)
     const categories = Object.keys(words);
     const category =
       categories[Math.floor(Math.random() * Object.keys(categories).length)];
 
-    console.log(category);
-
     // pick a random word utility category
     const word =
       words[category][Math.floor(Math.random() * words[category].length)];
 
-    console.log(word);
-
     return { word, category };
-  };
+  }, [words]);
 
   // starts the secret word game
-  const startGame = () => {
+  const startGame = useCallback(() => {
+    // clear all letters
+    clearLetterStates();
+
     // pick word and pick category
     const { word, category } = pickedWordAndCategory();
 
@@ -71,7 +70,7 @@ export function App() {
 
     // to change the state of the gameStage to stage start
     setGameStage(stages[1].name);
-  };
+  }, [pickedWordAndCategory]);
 
   // process the letter input
   const verifyLetter = (letter) => {
@@ -101,11 +100,13 @@ export function App() {
     }
   };
 
+  // resetting when attempts reach 0
   const clearLetterStates = () => {
     setGuessedLetters([]);
     setWrongLetters([]);
   };
 
+  // check if guesses ended
   useEffect(() => {
     if (guesses <= 0) {
       // reset all stages
@@ -114,6 +115,20 @@ export function App() {
       setGameStage(stages[2].name);
     }
   }, [guesses]);
+
+  // check win condition
+  useEffect(() => {
+    const uniqueLetters = [...new Set(letters)];
+
+    // win condition
+    if (guessedLetters.length === uniqueLetters.length) {
+      // add score
+      setScore((actualScore) => (actualScore += 100));
+
+      // restart game with new word
+      startGame();
+    }
+  }, [guessedLetters, letters, startGame]);
 
   // restart the game
   const retry = () => {
@@ -138,7 +153,7 @@ export function App() {
           score={score}
         />
       )}
-      {gameStage === "end" && <GameOver retry={retry} />}
+      {gameStage === "end" && <GameOver retry={retry} score={score} />}
     </div>
   );
 }
